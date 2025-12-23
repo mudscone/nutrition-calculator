@@ -1,0 +1,81 @@
+
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>영양성분 계산기 - 결과</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="wrap">
+    <h1>영양성분 계산기 (MVP)</h1>
+    <nav class="nav">
+      <a href="/">레시피 입력</a>
+      <a href="/result">결과</a>
+      <a href="/admin/ingredients">관리자</a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <section class="card">
+      <h2>레시피</h2>
+      <div class="grid2">
+        <div><b>레시피명</b><div>{{ recipe.recipe_name or "-" }}</div></div>
+        <div><b>1개 무게(g)</b><div>{{ recipe.unit_weight_g }}</div></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>원재료</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>원재료</th>
+            <th style="text-align:right;">사용량(g)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for it in items %}
+          <tr>
+            <td>{{ it.ingredient.display_name }}</td>
+            <td style="text-align:right;">{{ "%.2f"|format(it.amount_g) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>영양성분 합계</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>항목</th>
+            <th style="text-align:right;">1개 기준</th>
+            <th style="text-align:right;">100g 기준</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for key, label, unit in totals.order %}
+          <tr>
+            <td>{{ label }}</td>
+            <td style="text-align:right;">{{ totals.per_unit[key] }} {{ unit }}</td>
+            <td style="text-align:right;">{{ totals.per_100g[key] }} {{ unit }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="row">
+        <a class="btn primary" href="/label.pdf">영양성분표 출력(PDF)</a>
+        <a class="btn" href="/">레시피 수정</a>
+      </div>
+    </section>
+
+    <form method="post" action="/recipe/reset" class="row">
+      <button class="btn danger" type="submit">레시피 초기화</button>
+    </form>
+  </main>
+</body>
+</html>

@@ -1,0 +1,135 @@
+
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>영양성분 계산기 - 레시피 입력</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="wrap">
+    <h1>영양성분 계산기 (MVP)</h1>
+    <nav class="nav">
+      <a href="/">레시피 입력</a>
+      <a href="/result">결과</a>
+      <a href="/admin/ingredients">관리자</a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <form method="post" action="/recipe/save" class="card">
+      <div class="grid2">
+        <label>
+          레시피명
+          <input type="text" name="recipe_name" value="{{ recipe.recipe_name }}" placeholder="예: 말차초코칩 스콘" />
+        </label>
+        <label>
+          굽고 난 제품 1개 무게(g)
+          <input type="number" step="0.1" name="unit_weight_g" value="{{ recipe.unit_weight_g }}" placeholder="예: 95" />
+        </label>
+      </div>
+
+      <h2>원재료</h2>
+
+      <p class="muted">원재료 검색 → 선택 → 사용량(g) 입력. 행 추가 버튼으로 여러 원재료를 입력할 수 있습니다.</p>
+
+      <datalist id="ingredients-list">
+        {% for ing in ingredients %}
+          <option value="{{ ing.display_name }}" data-id="{{ ing.id }}"></option>
+        {% endfor %}
+      </datalist>
+
+      <table class="table" id="items-table">
+        <thead>
+          <tr>
+            <th style="width: 65%;">원재료 선택명</th>
+            <th style="width: 20%;">사용량(g)</th>
+            <th style="width: 15%;">삭제</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if recipe["items"] and recipe["items"]|length > 0 %}
+            {% for it in recipe["items"] %}
+              <tr>
+                <td>
+                  <input class="ing-name" list="ingredients-list" placeholder="예: 이눌린|OO" />
+                  <input class="ing-id" type="hidden" name="ingredient_id" value="{{ it.ingredient_id }}" />
+                </td>
+                <td>
+                  <input type="number" step="0.01" name="amount_g" value="{{ it.amount_g }}" />
+                </td>
+                <td><button type="button" class="btn danger btn-del">삭제</button></td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td>
+                <input class="ing-name" list="ingredients-list" placeholder="원재료 검색/선택" />
+                <input class="ing-id" type="hidden" name="ingredient_id" value="0" />
+              </td>
+              <td><input type="number" step="0.01" name="amount_g" value="" /></td>
+              <td><button type="button" class="btn danger btn-del">삭제</button></td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+
+      <div class="row">
+        <button type="button" class="btn" id="add-row">+ 행 추가</button>
+        <button type="submit" class="btn primary">결과 보기</button>
+      </div>
+    </form>
+
+    <form method="post" action="/recipe/reset" class="row">
+      <button class="btn danger" type="submit">레시피 초기화</button>
+    </form>
+
+    <section class="card">
+      <h2>관리자 안내</h2>
+      <p class="muted">원재료 DB 수정은 관리자만 가능합니다. /admin/ingredients 에서 로그인 후 수정하세요.</p>
+    </section>
+  </main>
+
+<script>
+function findIngredientIdByName(name) {
+  const options = document.querySelectorAll('#ingredients-list option');
+  for (const opt of options) {
+    if (opt.value === name) return opt.dataset.id;
+  }
+  return "0";
+}
+
+function bindRow(row) {
+  const nameInput = row.querySelector('.ing-name');
+  const idInput = row.querySelector('.ing-id');
+  const delBtn = row.querySelector('.btn-del');
+
+  nameInput.addEventListener('change', () => {
+    idInput.value = findIngredientIdByName(nameInput.value);
+  });
+
+  delBtn.addEventListener('click', () => {
+    row.remove();
+  });
+}
+
+document.querySelectorAll('#items-table tbody tr').forEach(bindRow);
+
+document.getElementById('add-row').addEventListener('click', () => {
+  const tbody = document.querySelector('#items-table tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>
+      <input class="ing-name" list="ingredients-list" placeholder="원재료 검색/선택" />
+      <input class="ing-id" type="hidden" name="ingredient_id" value="0" />
+    </td>
+    <td><input type="number" step="0.01" name="amount_g" value="" /></td>
+    <td><button type="button" class="btn danger btn-del">삭제</button></td>
+  `;
+  tbody.appendChild(tr);
+  bindRow(tr);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>원재료 DB (관리자)</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="wrap">
+    <h1>원재료 DB (관리자)</h1>
+    <nav class="nav">
+      <a href="/">레시피 입력</a>
+      <a href="/result">결과</a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <section class="card">
+      <form method="get" action="/admin/ingredients" class="row">
+        <input type="text" name="q" value="{{ q }}" placeholder="검색 (원재료|브랜드)" />
+        <button class="btn" type="submit">검색</button>
+        <a class="btn primary" href="/admin/ingredients/new">+ 원재료 추가</a>
+        <form method="post" action="/admin/logout"></form>
+      </form>
+      <form method="post" action="/admin/logout" class="row">
+        <button class="btn danger" type="submit">로그아웃</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>원재료 선택명</th>
+            <th style="text-align:right;">나트륨(mg/100g)</th>
+            <th style="text-align:right;">탄수(g/100g)</th>
+            <th style="text-align:right;">단백질(g/100g)</th>
+            <th>관리</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ing in ingredients %}
+          <tr>
+            <td>{{ ing.id }}</td>
+            <td>{{ ing.display_name }}</td>
+            <td style="text-align:right;">{{ ing.sodium_mg_100g }}</td>
+            <td style="text-align:right;">{{ ing.carbs_g_100g }}</td>
+            <td style="text-align:right;">{{ ing.protein_g_100g }}</td>
+            <td class="row">
+              <a class="btn" href="/admin/ingredients/{{ ing.id }}/edit">수정</a>
+              <form method="post" action="/admin/ingredients/{{ ing.id }}/delete" onsubmit="return confirm('삭제할까요?');">
+                <button class="btn danger" type="submit">삭제</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

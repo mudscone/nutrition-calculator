@@ -1,0 +1,66 @@
+
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>원재료 {{ "수정" if ingredient else "추가" }}</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="wrap">
+    <h1>원재료 {{ "수정" if ingredient else "추가" }}</h1>
+    <nav class="nav">
+      <a href="/admin/ingredients">목록</a>
+      <a href="/">레시피</a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <section class="card">
+      {% if error %}
+        <p class="error">{{ error }}</p>
+      {% endif %}
+
+      <form method="post" action="{{ '/admin/ingredients/' ~ ingredient.id ~ '/edit' if ingredient else '/admin/ingredients/new' }}">
+        <div class="grid2">
+          <label>원재료명<input name="name" value="{{ ingredient.name if ingredient else '' }}" /></label>
+          <label>브랜드/제조사<input name="brand" value="{{ ingredient.brand if ingredient else '' }}" /></label>
+        </div>
+
+        <div class="grid2">
+          <label>기준량(g)<input type="number" step="0.1" name="base_g" value="{{ ingredient.base_g if ingredient else 100 }}" /></label>
+          <label>나트륨(mg/100g)<input type="number" step="0.01" name="sodium_mg_100g" value="{{ ingredient.sodium_mg_100g if ingredient else 0 }}" /></label>
+        </div>
+
+        <div class="grid3">
+          <label>탄수화물(g/100g)<input type="number" step="0.01" name="carbs_g_100g" value="{{ ingredient.carbs_g_100g if ingredient else 0 }}" /></label>
+          <label>당류(g/100g)<input type="number" step="0.01" name="sugars_g_100g" value="{{ ingredient.sugars_g_100g if ingredient else 0 }}" /></label>
+          <label>식이섬유(g/100g)<input type="number" step="0.01" name="fiber_g_100g" value="{{ ingredient.fiber_g_100g if ingredient else 0 }}" /></label>
+        </div>
+
+        <div class="grid3">
+          <label>알룰로스(g/100g)<input type="number" step="0.01" name="allulose_g_100g" value="{{ ingredient.allulose_g_100g if ingredient else 0 }}" /></label>
+          <label>지방(g/100g)<input type="number" step="0.01" name="fat_g_100g" value="{{ ingredient.fat_g_100g if ingredient else 0 }}" /></label>
+          <label>트랜스지방(g/100g)<input type="number" step="0.01" name="trans_fat_g_100g" value="{{ ingredient.trans_fat_g_100g if ingredient else 0 }}" /></label>
+        </div>
+
+        <div class="grid2">
+          <label>포화지방(g/100g)<input type="number" step="0.01" name="sat_fat_g_100g" value="{{ ingredient.sat_fat_g_100g if ingredient else 0 }}" /></label>
+          <label>콜레스테롤(mg/100g)<input type="number" step="0.01" name="chol_mg_100g" value="{{ ingredient.chol_mg_100g if ingredient else 0 }}" /></label>
+        </div>
+
+        <div class="grid2">
+          <label>단백질(g/100g)<input type="number" step="0.01" name="protein_g_100g" value="{{ ingredient.protein_g_100g if ingredient else 0 }}" /></label>
+          <label>메모<input name="memo" value="{{ ingredient.memo if ingredient else '' }}" /></label>
+        </div>
+
+        <div class="row">
+          <button class="btn primary" type="submit">저장</button>
+          <a class="btn" href="/admin/ingredients">취소</a>
+        </div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

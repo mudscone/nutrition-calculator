@@ -1,0 +1,37 @@
+
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>관리자 로그인</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <header class="wrap">
+    <h1>관리자 로그인</h1>
+    <nav class="nav">
+      <a href="/">레시피 입력</a>
+      <a href="/result">결과</a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <section class="card">
+      <form method="post" action="/admin/login">
+        <label>
+          관리자 비밀번호
+          <input type="password" name="password" placeholder="ADMIN_PASSWORD" />
+        </label>
+        {% if error %}
+          <p class="error">{{ error }}</p>
+        {% endif %}
+        <div class="row">
+          <button class="btn primary" type="submit">로그인</button>
+        </div>
+      </form>
+      <p class="muted">.env의 ADMIN_PASSWORD와 일치해야 합니다.</p>
+    </section>
+  </main>
+</body>
+</html>
