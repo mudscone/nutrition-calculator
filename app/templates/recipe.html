@@ -92,6 +92,7 @@
   </main>
 
 <script>
+// 원재료명 → ID 찾기
 function findIngredientIdByName(name) {
   const options = document.querySelectorAll('#ingredients-list option');
   for (const opt of options) {
@@ -100,33 +101,73 @@ function findIngredientIdByName(name) {
   return "0";
 }
 
+// 행 하나에 이벤트 바인딩
 function bindRow(row) {
   const nameInput = row.querySelector('.ing-name');
   const idInput = row.querySelector('.ing-id');
   const delBtn = row.querySelector('.btn-del');
 
+  if (!nameInput || !idInput) return;
+
+  // 원재료명 변경 시 ID 갱신
   nameInput.addEventListener('change', () => {
     idInput.value = findIngredientIdByName(nameInput.value);
   });
 
-  delBtn.addEventListener('click', () => {
-    row.remove();
+  // 행 삭제
+  if (delBtn) {
+    delBtn.addEventListener('click', () => {
+      row.remove();
+    });
+  }
+}
+
+// ⭐ 핵심: ingredient_id → display_name 복원
+function fillIngredientNamesFromIds() {
+  const options = document.querySelectorAll('#ingredients-list option');
+  const idToNameMap = {};
+
+  options.forEach(opt => {
+    idToNameMap[opt.dataset.id] = opt.value;
+  });
+
+  document.querySelectorAll('#items-table tbody tr').forEach(row => {
+    const idInput = row.querySelector('.ing-id');
+    const nameInput = row.querySelector('.ing-name');
+
+    if (
+      idInput &&
+      nameInput &&
+      idInput.value &&
+      idToNameMap[idInput.value]
+    ) {
+      nameInput.value = idToNameMap[idInput.value];
+    }
   });
 }
 
+// ===== 페이지 최초 로드 시 =====
 document.querySelectorAll('#items-table tbody tr').forEach(bindRow);
+fillIngredientNamesFromIds();
 
+// ===== 행 추가 버튼 =====
 document.getElementById('add-row').addEventListener('click', () => {
   const tbody = document.querySelector('#items-table tbody');
   const tr = document.createElement('tr');
+
   tr.innerHTML = `
     <td>
       <input class="ing-name" list="ingredients-list" placeholder="원재료 검색/선택" />
       <input class="ing-id" type="hidden" name="ingredient_id" value="0" />
     </td>
-    <td><input type="number" step="0.01" name="amount_g" value="" /></td>
-    <td><button type="button" class="btn danger btn-del">삭제</button></td>
+    <td>
+      <input type="number" step="0.01" name="amount_g" value="" />
+    </td>
+    <td>
+      <button type="button" class="btn danger btn-del">삭제</button>
+    </td>
   `;
+
   tbody.appendChild(tr);
   bindRow(tr);
 });
