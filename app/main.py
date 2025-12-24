@@ -1,10 +1,13 @@
 
 import os
+
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 
 from dotenv import load_dotenv
 load_dotenv()
+
+BRAND_NAME = os.getenv("BRAND_NAME", "영양성분 계산기")
 
 from fastapi import FastAPI, Request, Depends, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
@@ -20,7 +23,9 @@ from .services.calc import compute_totals
 from .services.pdf import build_label_pdf
 
 
-app = FastAPI(title="영양성분 계산기 (MVP)")
+
+app = FastAPI(title=BRAND_NAME)
+
 app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET", "change-me-please"))
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
@@ -59,6 +64,7 @@ def recipe_form(request: Request, db=Depends(get_db)):
             "request": request,
             "recipe": recipe,
             "ingredients": ingredients,
+            "brand_name": BRAND_NAME,
         },
     )
 
@@ -116,6 +122,7 @@ def result_page(request: Request, db=Depends(get_db)):
             "recipe": recipe,
             "items": hydrated,
             "totals": totals,
+            "brand_name": BRAND_NAME,
         },
     )
 
@@ -151,7 +158,8 @@ def label_pdf(request: Request, db=Depends(get_db)):
 
 @app.get("/admin/login", response_class=HTMLResponse)
 def admin_login_form(request: Request):
-    return templates.TemplateResponse("admin/login.html", {"request": request, "error": None})
+    return templates.TemplateResponse("admin/login.html", {"request": request, "error": None,
+                                                           "brand_name": BRAND_NAME,})
 
 
 @app.post("/admin/login")
@@ -159,7 +167,8 @@ def admin_login(request: Request, password: str = Form("")):
     if verify_admin_password(password):
         request.session["is_admin"] = True
         return RedirectResponse(url="/admin/ingredients", status_code=303)
-    return templates.TemplateResponse("admin/login.html", {"request": request, "error": "비밀번호가 올바르지 않습니다."})
+    return templates.TemplateResponse("admin/login.html", {"request": request, "error": "비밀번호가 올바르지 않습니다.",
+                                                           "brand_name": BRAND_NAME,})
 
 
 @app.post("/admin/logout")
@@ -177,13 +186,15 @@ def admin_ingredients(request: Request, q: str = "", db=Depends(get_db)):
     ingredients = query.order_by(Ingredient.display_name.asc()).all()
     return templates.TemplateResponse(
         "admin/ingredients.html",
-        {"request": request, "ingredients": ingredients, "q": q},
+        {"request": request, "ingredients": ingredients, "q": q,
+         "brand_name": BRAND_NAME,},
     )
 
 
 @app.get("/admin/ingredients/new", response_class=HTMLResponse, dependencies=[Depends(require_admin)])
 def admin_new_ingredient_form(request: Request):
-    return templates.TemplateResponse("admin/edit.html", {"request": request, "ingredient": None, "error": None})
+    return templates.TemplateResponse("admin/edit.html", {"request": request, "ingredient": None, "error": None,
+                                                          "brand_name": BRAND_NAME,})
 
 
 @app.post("/admin/ingredients/new", dependencies=[Depends(require_admin)])
@@ -208,7 +219,8 @@ def admin_new_ingredient(
     name = name.strip()
     brand = brand.strip()
     if not name:
-        return templates.TemplateResponse("admin/edit.html", {"request": request, "ingredient": None, "error": "원재료명은 필수입니다."})
+        return templates.TemplateResponse("admin/edit.html", {"request": request, "ingredient": None, "error": "원재료명은 필수입니다.",
+                                                              "brand_name": BRAND_NAME,})
 
     display_name = f"{name}|{brand}" if brand else name
     ing = Ingredient(
@@ -238,7 +250,8 @@ def admin_edit_form(ingredient_id: int, request: Request, db=Depends(get_db)):
     ing = db.query(Ingredient).get(ingredient_id)
     if not ing:
         raise HTTPException(status_code=404, detail="Not found")
-    return templates.TemplateResponse("admin/edit.html", {"request": request, "ingredient": ing, "error": None})
+    return templates.TemplateResponse("admin/edit.html", {"request": request, "ingredient": ing, "error": None,
+                                                          "brand_name": BRAND_NAME,})
 
 
 @app.post("/admin/ingredients/{ingredient_id}/edit", dependencies=[Depends(require_admin)])
@@ -268,7 +281,8 @@ def admin_edit(
     name = name.strip()
     brand = brand.strip()
     if not name:
-        return templates.TemplateResponse("admin/edit.html", {"request": request, "ingredient": ing, "error": "원재료명은 필수입니다."})
+        return templates.TemplateResponse("admin/edit.html", {"request": request, "ingredient": ing, "error": "원재료명은 필수입니다.",
+                                                              "brand_name": BRAND_NAME,})
 
     ing.name = name
     ing.brand = brand
