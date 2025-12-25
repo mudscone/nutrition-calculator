@@ -11,6 +11,7 @@ load_dotenv()
 
 
 from fastapi import FastAPI, Request, Depends, Form, HTTPException
+from fastapi import Response
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -105,7 +106,10 @@ def recipe_form(request: Request, db=Depends(get_db)):
         },
     )
 
-
+@app.head("/")
+def head_root():
+    return Response(status_code=200)
+    
 @app.post("/recipe/save")
 def recipe_save(
     request: Request,
