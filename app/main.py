@@ -1,5 +1,6 @@
 
 import os
+import re
 
 from datetime import datetime
 from typing import List, Optional, Dict, Any
@@ -7,7 +8,7 @@ from typing import List, Optional, Dict, Any
 from dotenv import load_dotenv
 load_dotenv()
 
-BRAND_NAME = os.getenv("BRAND_NAME", "영양성분 계산기")
+
 
 from fastapi import FastAPI, Request, Depends, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
@@ -21,6 +22,9 @@ from .auth import require_admin, verify_admin_password
 from .schemas import IngredientIn
 from .services.calc import compute_totals
 from .services.pdf import build_label_pdf
+from sqlalchemy import case, func
+
+BRAND_NAME = os.getenv("BRAND_NAME", "영양성분 계산기")
 
 
 
@@ -54,10 +58,43 @@ def _get_recipe_session(request: Request) -> Dict[str, Any]:
     return request.session["recipe"]
 
 
+import re
+
 @app.get("/", response_class=HTMLResponse)
 def recipe_form(request: Request, db=Depends(get_db)):
     recipe = _get_recipe_session(request)
-    ingredients = db.query(Ingredient).order_by(Ingredient.display_name.asc()).all()
+
+    # DB에서 전부 가져온 뒤, Python에서 정렬(로컬/배포 동일 결과)
+    ingredients = db.query(Ingredient).all()
+
+    def sort_name(display_name: str) -> str:
+        s = (display_name or "").strip()
+        # '이눌린|OO' 같은 형태면 앞부분만 정렬 기준으로 사용
+        if "|" in s:
+            s = s.split("|", 1)[0].strip()
+        return s
+
+    def strip_leading_symbols(s: str) -> str:
+        # 공백/기호가 앞에 있으면 정렬을 망치니 제거
+        return re.sub(r"^[^0-9A-Za-z가-힣]+", "", s)
+
+    def is_english_start(s: str) -> bool:
+        return bool(s) and s[0].isascii() and s[0].isalpha()
+
+    def key(ing: Ingredient):
+        s = strip_leading_symbols(sort_name(ing.display_name))
+
+        # 그룹: 영문 먼저(0), 그 외(한글 포함) 다음(1)
+        group = 0 if is_english_start(s) else 1
+
+        # 영문은 A-Z(대소문자 무시)
+        primary = s.lower() if group == 0 else s
+
+        # tie-breaker 포함
+        return (group, primary, s)
+
+    ingredients.sort(key=key)
+
     return templates.TemplateResponse(
         "recipe.html",
         {
