@@ -32,47 +32,71 @@
 
       <h2>원재료</h2>
 
-      <p class="muted">원재료 검색 → 선택 → 사용량(g) 입력. 행 추가 버튼으로 여러 원재료를 입력할 수 있습니다.</p>
 
       <datalist id="ingredients-list">
-        {% for ing in ingredients %}
-          <option value="{{ ing.display_name }}" data-id="{{ ing.id }}"></option>
-        {% endfor %}
-      </datalist>
+  {% for ing in ingredients %}
+    <option
+      value="{{ ing.display_name }}"
+      data-id="{{ ing.id }}"
+      data-memo="{{ ing.memo|default('')|e }}"
+    ></option>
+  {% endfor %}
+</datalist>
 
       <table class="table" id="items-table">
         <thead>
           <tr>
-            <th style="width: 65%;">원재료 선택명</th>
+            <th style="width: 40%;">원재료 선택명</th>
             <th style="width: 20%;">사용량(g)</th>
+            <th style="width: 25%;">메모</th>
             <th style="width: 15%;">삭제</th>
           </tr>
         </thead>
         <tbody>
-          {% if recipe["items"] and recipe["items"]|length > 0 %}
-            {% for it in recipe["items"] %}
-              <tr>
-                <td>
-                  <input class="ing-name" list="ingredients-list" placeholder="예: 이눌린|OO" />
-                  <input class="ing-id" type="hidden" name="ingredient_id" value="{{ it.ingredient_id }}" />
-                </td>
-                <td>
-                  <input type="number" step="0.01" name="amount_g" value="{{ it.amount_g }}" />
-                </td>
-                <td><button type="button" class="btn danger btn-del">삭제</button></td>
-              </tr>
-            {% endfor %}
-          {% else %}
-            <tr>
-              <td>
-                <input class="ing-name" list="ingredients-list" placeholder="원재료 검색/선택" />
-                <input class="ing-id" type="hidden" name="ingredient_id" value="0" />
-              </td>
-              <td><input type="number" step="0.01" name="amount_g" value="" /></td>
-              <td><button type="button" class="btn danger btn-del">삭제</button></td>
-            </tr>
-          {% endif %}
-        </tbody>
+  {% if recipe["items"] and recipe["items"]|length > 0 %}
+    {% for it in recipe["items"] %}
+      <tr>
+        <td>
+          <input class="ing-name" list="ingredients-list" placeholder="예: 이눌린|OO" />
+          <input class="ing-id" type="hidden" name="ingredient_id" value="{{ it.ingredient_id }}" />
+        </td>
+
+        <td>
+          <input type="number" step="0.01" name="amount_g" value="{{ it.amount_g }}" />
+        </td>
+
+        <!-- ✅ 메모 컬럼 추가 (사용량 오른쪽) -->
+        <td>
+          <input class="ing-memo" type="text" readonly value="" placeholder="-" />
+        </td>
+
+        <td>
+          <button type="button" class="btn danger btn-del">삭제</button>
+        </td>
+      </tr>
+    {% endfor %}
+  {% else %}
+    <tr>
+      <td>
+        <input class="ing-name" list="ingredients-list" placeholder="원재료 검색/선택" />
+        <input class="ing-id" type="hidden" name="ingredient_id" value="0" />
+      </td>
+
+      <td>
+        <input type="number" step="0.01" name="amount_g" value="" />
+      </td>
+
+      <!-- ✅ 메모 컬럼 추가 (사용량 오른쪽) -->
+      <td>
+        <input class="ing-memo" type="text" readonly value="" placeholder="-" />
+      </td>
+
+      <td>
+        <button type="button" class="btn danger btn-del">삭제</button>
+      </td>
+    </tr>
+  {% endif %}
+</tbody>
       </table>
 
       <div class="row">
@@ -86,75 +110,83 @@
     </form>
 
     <section class="card">
-      <h2>관리자 안내</h2>
-      <p class="muted">원재료 DB 수정은 관리자만 가능합니다. /admin/ingredients 에서 로그인 후 수정하세요.</p>
+      <h2>안내</h2>
+      <p class="muted">원재료 DB 수정은 관리자 로그인 후 가능합니다.</p>
     </section>
   </main>
 
 <script>
-// 원재료명 → ID 찾기
-function findIngredientIdByName(name) {
-  const options = document.querySelectorAll('#ingredients-list option');
-  for (const opt of options) {
-    if (opt.value === name) return opt.dataset.id;
+function findOptionByName(name) {
+  const opts = document.querySelectorAll('#ingredients-list option');
+  for (const opt of opts) {
+    if (opt.value === name) return opt;
   }
-  return "0";
+  return null;
 }
 
-// 행 하나에 이벤트 바인딩
-function bindRow(row) {
-  const nameInput = row.querySelector('.ing-name');
-  const idInput = row.querySelector('.ing-id');
-  const delBtn = row.querySelector('.btn-del');
-
-  if (!nameInput || !idInput) return;
-
-  // 원재료명 변경 시 ID 갱신
-  nameInput.addEventListener('change', () => {
-    idInput.value = findIngredientIdByName(nameInput.value);
+function buildIdToNameMap() {
+  const map = {};
+  document.querySelectorAll('#ingredients-list option').forEach(opt => {
+    map[opt.dataset.id] = opt.value;
   });
-
-  // 행 삭제
-  if (delBtn) {
-    delBtn.addEventListener('click', () => {
-      row.remove();
-    });
-  }
+  return map;
 }
 
-// ⭐ 핵심: ingredient_id → display_name 복원
-function fillIngredientNamesFromIds() {
-  const options = document.querySelectorAll('#ingredients-list option');
-  const idToNameMap = {};
+function bindRow(tr) {
+  const nameEl = tr.querySelector('.ing-name');
+  const idEl   = tr.querySelector('.ing-id');
+  const memoEl = tr.querySelector('.ing-memo');
+  const delBtn = tr.querySelector('.btn-del');
 
-  options.forEach(opt => {
-    idToNameMap[opt.dataset.id] = opt.value;
-  });
+  if (!nameEl || !idEl || !memoEl) return;
 
-  document.querySelectorAll('#items-table tbody tr').forEach(row => {
-    const idInput = row.querySelector('.ing-id');
-    const nameInput = row.querySelector('.ing-name');
+  function syncFromName() {
+    const opt = findOptionByName(nameEl.value);
+    idEl.value = opt ? (opt.dataset.id || "0") : "0";
+    memoEl.value = opt ? (opt.dataset.memo || "") : "";
+  }
 
-    if (
-      idInput &&
-      nameInput &&
-      idInput.value &&
-      idToNameMap[idInput.value]
-    ) {
-      nameInput.value = idToNameMap[idInput.value];
+  // 선택/확정 시
+  nameEl.addEventListener('change', syncFromName);
+
+  // 타이핑으로 바뀌면(리스트에 없는 값이면 초기화)
+  nameEl.addEventListener('input', () => {
+    const opt = findOptionByName(nameEl.value);
+    if (!opt) {
+      idEl.value = "0";
+      memoEl.value = "";
     }
   });
+
+  // 삭제
+  if (delBtn) {
+    delBtn.addEventListener('click', () => tr.remove());
+  }
+
+  // 최초 1회 동기화
+  syncFromName();
 }
 
-// ===== 페이지 최초 로드 시 =====
-document.querySelectorAll('#items-table tbody tr').forEach(bindRow);
-fillIngredientNamesFromIds();
+// ⭐ ingredient_id가 있으면 display_name을 채우고, 그 다음 memo까지 채우기
+function fillNamesAndMemosFromIds() {
+  const idToName = buildIdToNameMap();
 
-// ===== 행 추가 버튼 =====
-document.getElementById('add-row').addEventListener('click', () => {
+  document.querySelectorAll('#items-table tbody tr').forEach(tr => {
+    const idEl = tr.querySelector('.ing-id');
+    const nameEl = tr.querySelector('.ing-name');
+
+    if (idEl && nameEl && idEl.value && idToName[idEl.value]) {
+      nameEl.value = idToName[idEl.value];
+    }
+    // name이 세팅된 뒤 memo까지 sync되도록 bindRow가 처리
+  });
+}
+
+function addRow() {
   const tbody = document.querySelector('#items-table tbody');
   const tr = document.createElement('tr');
 
+  // ✅ 4칸 구조로 맞춤(메모 td 포함)
   tr.innerHTML = `
     <td>
       <input class="ing-name" list="ingredients-list" placeholder="원재료 검색/선택" />
@@ -164,12 +196,33 @@ document.getElementById('add-row').addEventListener('click', () => {
       <input type="number" step="0.01" name="amount_g" value="" />
     </td>
     <td>
+      <input class="ing-memo" type="text" readonly value="" placeholder="-" />
+    </td>
+    <td>
       <button type="button" class="btn danger btn-del">삭제</button>
     </td>
   `;
 
   tbody.appendChild(tr);
   bindRow(tr);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  // 기존 행 바인딩
+  document.querySelectorAll('#items-table tbody tr').forEach(bindRow);
+
+  // 기존 id → name 복원 + memo 동기화를 위해 name만 채우고,
+  // 이미 bindRow가 syncFromName()을 호출하므로 memo도 자동 채워짐
+  fillNamesAndMemosFromIds();
+  document.querySelectorAll('#items-table tbody tr').forEach(tr => {
+    // name을 fill한 뒤 memo를 다시 한번 확실히 sync
+    const nameEl = tr.querySelector('.ing-name');
+    if (nameEl) nameEl.dispatchEvent(new Event('change'));
+  });
+
+  // 행 추가
+  const addBtn = document.getElementById('add-row');
+  if (addBtn) addBtn.addEventListener('click', addRow);
 });
 </script>
 </body>
