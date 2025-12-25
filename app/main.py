@@ -214,17 +214,52 @@ def admin_logout(request: Request):
     return RedirectResponse(url="/", status_code=303)
 
 
-@app.get("/admin/ingredients", response_class=HTMLResponse, dependencies=[Depends(require_admin)])
+@app.get(
+    "/admin/ingredients",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_admin)]
+)
 def admin_ingredients(request: Request, q: str = "", db=Depends(get_db)):
     query = db.query(Ingredient)
+
     if q:
         like = f"%{q}%"
         query = query.filter(Ingredient.display_name.ilike(like))
-    ingredients = query.order_by(Ingredient.display_name.asc()).all()
+
+    # ① DB에서 모두 가져오기
+    ingredients = query.all()
+
+    # ② 정렬 (영문 먼저 / 영문 A–Z / 한글 가나다)
+    import re
+
+    def sort_name(display_name: str) -> str:
+        s = (display_name or "").strip()
+        if "|" in s:
+            s = s.split("|", 1)[0].strip()
+        return s
+
+    def strip_leading_symbols(s: str) -> str:
+        return re.sub(r"^[^0-9A-Za-z가-힣]+", "", s)
+
+    def is_english_start(s: str) -> bool:
+        return bool(s) and s[0].isascii() and s[0].isalpha()
+
+    def key(ing: Ingredient):
+        s = strip_leading_symbols(sort_name(ing.display_name))
+        group = 0 if is_english_start(s) else 1
+        primary = s.lower() if group == 0 else s
+        return (group, primary, s)
+
+    ingredients.sort(key=key)
+
     return templates.TemplateResponse(
         "admin/ingredients.html",
-        {"request": request, "ingredients": ingredients, "q": q,
-         "brand_name": BRAND_NAME,},
+        {
+            "request": request,
+            "ingredients": ingredients,
+            "q": q,
+            "brand_name": BRAND_NAME,
+        },
     )
 
 
