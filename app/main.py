@@ -298,7 +298,7 @@ def admin_new_ingredient(
         return templates.TemplateResponse("admin/edit.html", {"request": request, "ingredient": None, "error": "원재료명은 필수입니다.",
                                                               "brand_name": BRAND_NAME,})
 
-    display_name = f"{name}|{brand}" if brand else name
+    display_name = f"{name} | {brand}" if brand else name
     ing = Ingredient(
         display_name=display_name,
         name=name,
@@ -362,7 +362,7 @@ def admin_edit(
 
     ing.name = name
     ing.brand = brand
-    ing.display_name = f"{name}|{brand}" if brand else name
+    ing.display_name = f"{name} | {brand}" if brand else name
     ing.base_g = float(base_g or 100.0)
 
     ing.sodium_mg_100g = float(sodium_mg_100g or 0.0)
