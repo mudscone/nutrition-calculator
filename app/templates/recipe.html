@@ -57,7 +57,9 @@
     {% for it in recipe["items"] %}
       <tr>
         <td>
-          <input class="ing-name" list="ingredients-list" placeholder="예: 이눌린|OO" />
+          <input class="ing-name" list="ingredients-list"
+       placeholder="예: 이눌린|OO"
+       value="{{ it.ingredient_name|default('') }}" />
           <input class="ing-id" type="hidden" name="ingredient_id" value="{{ it.ingredient_id }}" />
         </td>
 
@@ -67,7 +69,8 @@
 
         <!-- ✅ 메모 컬럼 추가 (사용량 오른쪽) -->
         <td>
-          <input class="ing-memo" type="text" readonly value="" placeholder="-" />
+          <input class="ing-memo" type="text" readonly
+       value="{{ it.memo|default('') }}" placeholder="-" />
         </td>
 
         <td>
@@ -167,7 +170,7 @@ function bindRow(tr) {
   syncFromName();
 }
 
-// ⭐ ingredient_id가 있으면 display_name을 채우고, 그 다음 memo까지 채우기
+// ⭐ ingredient_id → display_name 복구 (문자/숫자 타입 모두 대응)
 function fillNamesAndMemosFromIds() {
   const idToName = buildIdToNameMap();
 
@@ -175,10 +178,12 @@ function fillNamesAndMemosFromIds() {
     const idEl = tr.querySelector('.ing-id');
     const nameEl = tr.querySelector('.ing-name');
 
-    if (idEl && nameEl && idEl.value && idToName[idEl.value]) {
-      nameEl.value = idToName[idEl.value];
+    if (!idEl || !nameEl) return;
+
+    const id = String(idEl.value || "").trim(); // ✅ 타입 안전
+    if (id && idToName[id]) {
+      nameEl.value = idToName[id];
     }
-    // name이 세팅된 뒤 memo까지 sync되도록 bindRow가 처리
   });
 }
 
@@ -208,19 +213,13 @@ function addRow() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 기존 행 바인딩
+  // 1) 먼저 id → name 복구
+  fillNamesAndMemosFromIds();
+
+  // 2) 그 다음 각 행 바인딩(이때 bindRow가 최초 syncFromName으로 memo도 채움)
   document.querySelectorAll('#items-table tbody tr').forEach(bindRow);
 
-  // 기존 id → name 복원 + memo 동기화를 위해 name만 채우고,
-  // 이미 bindRow가 syncFromName()을 호출하므로 memo도 자동 채워짐
-  fillNamesAndMemosFromIds();
-  document.querySelectorAll('#items-table tbody tr').forEach(tr => {
-    // name을 fill한 뒤 memo를 다시 한번 확실히 sync
-    const nameEl = tr.querySelector('.ing-name');
-    if (nameEl) nameEl.dispatchEvent(new Event('change'));
-  });
-
-  // 행 추가
+  // 3) 행 추가
   const addBtn = document.getElementById('add-row');
   if (addBtn) addBtn.addEventListener('click', addRow);
 });
