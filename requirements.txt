@@ -9,3 +9,5 @@ reportlab==4.2.2
 python-dotenv
 itsdangerous==2.2.0
 psycopg2-binary
+pandas
+openpyxl
