@@ -389,3 +389,44 @@ def admin_delete(ingredient_id: int, db=Depends(get_db)):
     db.delete(ing)
     db.commit()
     return RedirectResponse(url="/admin/ingredients", status_code=303)
+import pandas as pd
+from io import BytesIO
+
+@app.get("/admin/ingredients/export", dependencies=[Depends(require_admin)])
+def export_ingredients(db=Depends(get_db)):
+    ingredients = db.query(Ingredient).all()
+
+    rows = []
+    for ing in ingredients:
+        rows.append({
+            "display_name": ing.display_name,
+            "name": ing.name,
+            "brand": ing.brand,
+            "base_g": ing.base_g,
+            "sodium_mg_100g": ing.sodium_mg_100g,
+            "carbs_g_100g": ing.carbs_g_100g,
+            "sugars_g_100g": ing.sugars_g_100g,
+            "fiber_g_100g": ing.fiber_g_100g,
+            "allulose_g_100g": ing.allulose_g_100g,
+            "fat_g_100g": ing.fat_g_100g,
+            "trans_fat_g_100g": ing.trans_fat_g_100g,
+            "sat_fat_g_100g": ing.sat_fat_g_100g,
+            "chol_mg_100g": ing.chol_mg_100g,
+            "protein_g_100g": ing.protein_g_100g,
+            "memo": ing.memo,
+        })
+
+    df = pd.DataFrame(rows)
+
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="ingredients")
+    output.seek(0)
+
+    filename = f"ingredients_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
